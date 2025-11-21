@@ -12,9 +12,22 @@ if not API_KEY:
 genai.configure(api_key=API_KEY)
 
 def process_html_update(html_content, user_instruction):
-    # ▼▼▼ ここを変更しました（Flash → Pro） ▼▼▼
-    # gemini-pro は古いライブラリでも確実に動作します
-    model = genai.GenerativeModel('gemini-pro')
+    # ▼▼▼ デバッグ用: 何のモデルが使えるか一覧表示する ▼▼▼
+    print("--- Checking available models ---")
+    try:
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                print(f"- {m.name}")
+    except Exception as e:
+        print(f"モデル一覧の取得に失敗: {e}")
+    print("-------------------------------")
+
+    # ▼▼▼ ここを本命の 1.5-flash に戻します ▼▼▼
+    # 環境がPython 3.11になったので、これで動く可能性が高いです
+    model_name = 'gemini-1.5-flash'
+    
+    print(f"Using model: {model_name}")
+    model = genai.GenerativeModel(model_name)
     
     prompt = f"""
     あなたはWeb開発者です。以下のHTMLを指示に従って修正し、修正後のHTMLのみ出力してください。
@@ -30,7 +43,7 @@ def process_html_update(html_content, user_instruction):
         response = model.generate_content(prompt)
         return response.text.replace("```html", "").replace("```", "").strip()
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error generating content: {e}")
         return None
 
 if __name__ == "__main__":
