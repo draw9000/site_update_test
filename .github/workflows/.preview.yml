@@ -1,0 +1,25 @@
+name: Deploy to Preview (Test Site)
+
+# プルリクエストが作られたり、更新されたりした時に動く
+on: pull_request
+
+jobs:
+  preview-deploy:
+    name: FTP Deploy to Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: 最新コードを取得
+        uses: actions/checkout@v4
+
+      - name: テスト環境へアップロード
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./
+          
+          # ▼▼▼ ここが重要！テスト用フォルダを指定 ▼▼▼
+          # 本番が /public_html/ なら、 /public_html/test/ などにします
+          # ※末尾の / を忘れずに！
+          server-dir: /tomorrowland-recruit/test/
