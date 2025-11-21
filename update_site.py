@@ -12,8 +12,9 @@ if not API_KEY:
 genai.configure(api_key=API_KEY)
 
 def process_html_update(html_content, user_instruction):
-    # ↓ ここから下の行は必ずスペース4つで下げる必要があります
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # ▼▼▼ ここを変更しました（Flash → Pro） ▼▼▼
+    # gemini-pro は古いライブラリでも確実に動作します
+    model = genai.GenerativeModel('gemini-pro')
     
     prompt = f"""
     あなたはWeb開発者です。以下のHTMLを指示に従って修正し、修正後のHTMLのみ出力してください。
@@ -27,21 +28,19 @@ def process_html_update(html_content, user_instruction):
     """
     try:
         response = model.generate_content(prompt)
-        # 余計な記号を削除
         return response.text.replace("```html", "").replace("```", "").strip()
     except Exception as e:
         print(f"Error: {e}")
         return None
 
 if __name__ == "__main__":
-    # GitHub Actionsの入力(引数)から指示を受け取る
     if len(sys.argv) > 1:
         instruction = sys.argv[1]
     else:
         print("指示がありません")
         sys.exit(1)
 
-    target_file = "index.html" # 変更したいファイル名
+    target_file = "index.html"
     
     if os.path.exists(target_file):
         with open(target_file, "r", encoding="utf-8") as f:
