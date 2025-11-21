@@ -1,0 +1,25 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main  # mainブランチに変更があった時(マージ時)のみ実行
+
+jobs:
+  web-deploy:
+    name: FTP Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: 最新コードを取得
+        uses: actions/checkout@v4
+
+      - name: FTPでサーバーにアップロード
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          # ローカルのどのフォルダをアップするか（ルートなら ./）
+          local-dir: ./
+          # サーバー側のどこに置くか（public_htmlなど）
+          server-dir: /public_html/

@@ -1,0 +1,45 @@
+name: AI Site Updater
+
+on:
+  workflow_dispatch:
+    inputs:
+      instruction:
+        description: '修正内容を入力 (例: お知らせの日付を更新して)'
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update_content:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ソースコードを取得
+        uses: actions/checkout@v4
+
+      - name: Pythonセットアップ
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: ライブラリインストール
+        run: pip install google-generativeai
+
+      - name: GeminiでHTML修正
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python update_site.py "${{ inputs.instruction }}"
+
+      - name: プルリクエストを作成 (確認用)
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "AIによる更新: ${{ inputs.instruction }}"
+          branch: ai-update-branch
+          title: "🤖 AI更新依頼: ${{ inputs.instruction }}"
+          body: |
+            AIによる修正提案です。
+            「Files changed」タブで変更箇所を確認してください。
+            問題なければ **Merge pull request** ボタンを押すと本番公開されます。
+          delete-branch: true
