@@ -13,7 +13,7 @@ permissions:
 jobs:
   update_content:
     # タイトルに [Update] が入っている時だけ動く（誤爆防止）
-    if: contains(github.event.issue.title, '[Update]')
+    if: startsWith(github.event.issue.title, 'Up')
     runs-on: ubuntu-latest
     steps:
       - name: ソースコードを取得
