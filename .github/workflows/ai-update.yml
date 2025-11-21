@@ -18,13 +18,15 @@ jobs:
       - name: ソースコードを取得
         uses: actions/checkout@v4
 
+      # ▼▼▼ 修正箇所1: Pythonバージョンを 3.11 に変更 ▼▼▼
       - name: Pythonセットアップ
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.11' 
 
+      # ▼▼▼ 修正箇所2: --upgrade オプションを追加して最新版を入れる ▼▼▼
       - name: ライブラリインストール
-        run: pip install google-generativeai
+        run: pip install --upgrade google-generativeai
 
       - name: GeminiでHTML修正
         env:
