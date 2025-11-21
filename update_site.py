@@ -1,63 +1,90 @@
 import os
 import sys
+import json
+import re
 import google.generativeai as genai
 
-# GitHub Actionsの環境変数からキーを取得
+# 環境変数チェック
 API_KEY = os.environ.get("GEMINI_API_KEY")
-
 if not API_KEY:
-    print("Error: API Keyが見つかりません")
+    print("Error: API Key not found")
     sys.exit(1)
 
 genai.configure(api_key=API_KEY)
 
-def process_html_update(html_content, user_instruction):
-    # ▼▼▼ ここを修正しました！リストにあった最新モデルを指定 ▼▼▼
-    model_name = 'gemini-2.5-flash'
+def process_site_update(base_html, user_instruction):
+    # モデル設定（最新のFlashを使用）
+    model = genai.GenerativeModel('gemini-2.5-flash')
     
-    print(f"Using model: {model_name}")
+    # プロンプト：JSON形式でファイル名とコードを返させる
+    prompt = f"""
+    あなたはWebサイト管理AIです。
+    ユーザーの指示に基づき、既存ページの修正、または新規ページの作成を行ってください。
+    
+    # 重要なルール
+    1. 出力は必ず **JSON形式のみ** にしてください。
+    2. キーは "filename" と "html" の2つです。
+    3. 新規作成の場合、既存のHTML（index.html）のデザイン（ヘッダー、フッター、CSS読み込みなど）を継承してください。
+    4. 既存ページの修正の場合、filenameは既存のもの（例: index.html）を指定してください。
+
+    # JSONの出力例
+    {{
+      "filename": "about.html",
+      "html": "<!DOCTYPE html>..."
+    }}
+
+    # 既存のデザイン（参考用 index.html）
+    {base_html}
+
+    # ユーザーの指示
+    {user_instruction}
+    """
+    
     try:
-        model = genai.GenerativeModel(model_name)
-        
-        prompt = f"""
-        あなたはWeb開発者です。以下のHTMLを指示に従って修正し、修正後のHTMLのみ出力してください。
-        Markdown記法は不要です。
-        
-        ### 指示
-        {user_instruction}
-    
-        ### 現在のHTML
-        {html_content}
-        """
-        
+        # JSONモードを意識させる（modelによっては response_mime_type='application/json' が使えるが、汎用的にテキストで受ける）
         response = model.generate_content(prompt)
-        return response.text.replace("```html", "").replace("```", "").strip()
+        text = response.text
         
+        # Markdownの ```json ... ``` を除去して純粋なJSONにする処理
+        clean_text = re.sub(r"```json|```", "", text).strip()
+        
+        # JSONとして解析
+        data = json.loads(clean_text)
+        return data
+
     except Exception as e:
-        print(f"Error generating content: {e}")
+        print(f"AI Error: {e}")
+        print(f"Raw response: {text}") # デバッグ用
         return None
 
 if __name__ == "__main__":
+    # GitHub Issuesの本文を引数として受け取る
     if len(sys.argv) > 1:
         instruction = sys.argv[1]
     else:
-        print("指示がありません")
+        print("No instruction provided")
         sys.exit(1)
 
-    target_file = "index.html"
-    
-    if os.path.exists(target_file):
-        with open(target_file, "r", encoding="utf-8") as f:
-            original = f.read()
+    # デザインの参考にするために index.html を読む
+    # (index.htmlが無い場合は空文字にする)
+    base_file = "index.html"
+    base_content = ""
+    if os.path.exists(base_file):
+        with open(base_file, "r", encoding="utf-8") as f:
+            base_content = f.read()
+
+    # AI処理実行
+    result = process_site_update(base_content, instruction)
+
+    if result and "filename" in result and "html" in result:
+        target_filename = result["filename"]
+        new_html = result["html"]
         
-        updated = process_html_update(original, instruction)
-        
-        if updated:
-            with open(target_file, "w", encoding="utf-8") as f:
-                f.write(updated)
-            print("Update Success")
-        else:
-            sys.exit(1)
+        # ファイル書き込み（新規作成 または 上書き）
+        with open(target_filename, "w", encoding="utf-8") as f:
+            f.write(new_html)
+            
+        print(f"SUCCESS: {target_filename} has been generated/updated.")
     else:
-        print("File not found")
+        print("FAILED: Could not parse AI response.")
         sys.exit(1)
