@@ -1,47 +1,49 @@
-name: AI Site Updater
+name: AI Site Updater (Issue Driven)
 
+# ▼▼▼ ここが変わりました：ボタン(workflow_dispatch)ではなく、Issue作成時(opened)に動く ▼▼▼
 on:
-  workflow_dispatch:
-    inputs:
-      instruction:
-        description: '修正内容を入力 (例: お知らせの日付を更新して)'
-        required: true
+  issues:
+    types: [opened]
 
 permissions:
   contents: write
   pull-requests: write
+  issues: write 
 
 jobs:
   update_content:
+    # タイトルに [Update] が入っている時だけ動く（誤爆防止）
+    if: contains(github.event.issue.title, '[Update]')
     runs-on: ubuntu-latest
     steps:
       - name: ソースコードを取得
         uses: actions/checkout@v4
 
-      # ▼▼▼ 修正箇所1: Pythonバージョンを 3.11 に変更 ▼▼▼
       - name: Pythonセットアップ
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11' 
+          python-version: '3.11'
 
-      # ▼▼▼ 修正箇所2: --upgrade オプションを追加して最新版を入れる ▼▼▼
       - name: ライブラリインストール
-        run: pip install --upgrade google-generativeai
+        run: |
+          pip install --upgrade pip
+          pip install --upgrade google-generativeai
 
+      # ▼▼▼ ここが変わりました：入力欄ではなく、Issueの「本文(body)」を指示として渡す ▼▼▼
       - name: GeminiでHTML修正
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python update_site.py "${{ inputs.instruction }}"
+        run: python update_site.py "${{ github.event.issue.body }}"
 
-      - name: プルリクエストを作成 (確認用)
+      - name: プルリクエストを作成
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "AIによる更新: ${{ inputs.instruction }}"
-          branch: ai-update-branch
-          title: "🤖 AI更新依頼: ${{ inputs.instruction }}"
+          commit-message: "Fix: Issue #${{ github.event.issue.number }}"
+          branch: ai-update-issue-${{ github.event.issue.number }}
+          title: "🤖 AI更新依頼 (from Issue #${{ github.event.issue.number }})"
           body: |
-            AIによる修正提案です。
-            「Files changed」タブで変更箇所を確認してください。
-            問題なければ **Merge pull request** ボタンを押すと本番公開されます。
+            Issue #${{ github.event.issue.number }} の指示に基づく修正案です。
+            承認(Merge)すると本番に反映されます。
+            Closes #${{ github.event.issue.number }}
           delete-branch: true
