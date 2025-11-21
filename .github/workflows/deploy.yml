@@ -3,7 +3,7 @@ name: Deploy to Production
 on:
   push:
     branches:
-      - main  # mainブランチに変更があった時(マージ時)のみ実行
+      - main
 
 jobs:
   web-deploy:
@@ -19,7 +19,6 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          # ローカルのどのフォルダをアップするか（ルートなら ./）
           local-dir: ./
-          # サーバー側のどこに置くか（public_htmlなど）
-          server-dir: /public_html/
+          # ↓ ここを書き換えました（Secretから読み込み）
+          server-dir: ${{ secrets.FTP_REMOTE_PATH }}
