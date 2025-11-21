@@ -12,7 +12,8 @@ if not API_KEY:
 genai.configure(api_key=API_KEY)
 
 def process_html_update(html_content, user_instruction):
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # 1.5-flash が認識されない場合、安定板の gemini-pro を試す
+model = genai.GenerativeModel('gemini-pro')
     prompt = f"""
     あなたはWeb開発者です。以下のHTMLを指示に従って修正し、修正後のHTMLのみ出力してください。
     Markdown記法は不要です。
