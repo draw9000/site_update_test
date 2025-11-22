@@ -38,7 +38,7 @@ jobs:
       - name: プルリクエストを作成
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.MY_PERSONAL_TOKEN }}
           commit-message: "Fix: Issue #${{ github.event.issue.number }}"
           branch: ai-update-issue-${{ github.event.issue.number }}
           title: "🤖 AI更新依頼 (from Issue #${{ github.event.issue.number }})"
